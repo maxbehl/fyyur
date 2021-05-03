@@ -193,40 +193,38 @@ def create_venue_form():
 def create_venue_submission():
   # TODO: insert form data as a new Venue record in the db, instead
   # TODO: modify data to be the data object returned from db insertion
-    error = False
-    req = request.form
+    form = VenueForm(request.form, meta={'csrf': False})
     conn = db.engine.connect()
     trans = conn.begin()
-    try:
-        name = req['name']
-        city = req['city']
-        state = req['state']
-        address = req['address']
-        phone = req['phone']
-        genres = req['genres']
-        facebook_link = req['facebook_link']
-        website_link = req['website_link']
-        image_link = req['image_link']
-        looking_for_talent = False
-        if 'seeking_talent' in req:
-          looking_for_talent = True
-        seeking_description = req['seeking_description']
-        print(looking_for_talent)
-        venue_sql = text("insert into venue (name,city,state,address,phone,genres,facebook_link,website_link,image_link,looking_for_talent,seeking_description) values (:n,:c,:s,:a,:p,:g,:f,:w,:i,:l,:sd)")
-        conn.execute(venue_sql, {"n":name,"c":city, "s": state, "a":address, "p": phone, "g": genres, "f": facebook_link, "w": website_link, "i": image_link, "l": looking_for_talent, "sd": seeking_description})
-        trans.commit()
-    except:
-        error = True
+    if form.validate():
+      try:
+          name=form.name.data
+          city=form.city.data
+          state=form.state.data
+          address=form.address.data
+          phone=form.phone.data
+          genres=form.genres.data
+          facebook_link=form.facebook_link.data
+          website_link=form.website_link.data
+          image_link=form.image_link.data
+          looking_for_talent=form.seeking_talent.data
+          seeking_description=form.seeking_description.data
+          venue_sql = text("insert into venue (name,city,state,address,phone,genres,facebook_link,website_link,image_link,looking_for_talent,seeking_description) values (:n,:c,:s,:a,:p,:g,:f,:w,:i,:l,:sd)")
+          conn.execute(venue_sql, {"n":name,"c":city, "s": state, "a":address, "p": phone, "g": genres, "f": facebook_link, "w": website_link, "i": image_link, "l": looking_for_talent, "sd": seeking_description})
+          trans.commit()
+          flash('Venue ' + request.form['name'] + ' was successfully listed!')
+      except ValueError as e:
+        print(e)
+        flash('An error occurred. Venue could not be listed.')
         trans.rollback()
-        print(sys.exc_info())
-    finally:
-        conn.close()
-    if error:
-        flash('An error occurred. Venue ' + request.form['name'] + ' could not be listed.')
-        abort(404)
+      finally:
+          conn.close()
     else:
-        flash('Venue ' + request.form['name'] + ' was successfully listed!')
-        return render_template('pages/home.html')
+      message = []
+      for field, err in form.errors.items():
+          message.append(field + ' ' + '|'.join(err))
+      flash('Errors ' + str(message))      
+    return render_template('pages/home.html')
   # on successful db insert, flash success
   
 
@@ -355,40 +353,38 @@ def edit_artist(artist_id):
 
 @app.route('/artists/<int:artist_id>/edit', methods=['POST'])
 def edit_artist_submission(artist_id):
-  error = False
-  req = request.form
-  print(req)
+  form = ArtistForm(request.form, meta={'csrf': False})
   conn = db.engine.connect()
   trans = conn.begin()
-  try:
-    name = req['name']
-    city = req['city']
-    state = req['state']
-    phone = req['phone']
-    genres = req['genres']
-    facebook_link = req['facebook_link']
-    website_link = req['website_link']
-    image_link = req['image_link']
-    looking_for_venue = False
-    if 'seeking_venue' in req:
-      looking_for_venue = True
-    seeking_description = req['seeking_description']
+  if form.validate():
+    try:
+      name=form.name.data
+      city=form.city.data
+      state=form.state.data
+      phone=form.phone.data
+      genres=form.genres.data
+      facebook_link=form.facebook_link.data
+      website_link=form.website_link.data
+      image_link=form.image_link.data
+      looking_for_venue=form.seeking_venue.data
+      seeking_description=form.seeking_description.data
 
-    add_artist_sql = text("update artist set name=:n, city=:c, state=:s, phone=:p, genres=:g, facebook_link=:f, website_link=:w, image_link=:i, looking_for_venue=:l, seeking_description=:sd where id=:id")
-    conn.execute(add_artist_sql, {"n":name, "c": city, "s": state, "p": phone, "g": genres, "f": facebook_link, "w": website_link, "i": image_link, "l": looking_for_venue, "sd": seeking_description, "id": artist_id})
-    trans.commit()
-  except:
-    error = True
-    trans.rollback()
-    print(sys.exc_info())
-  finally:
-    conn.close()
-  if error:
-    flash('An error occurred. Artist ' + request.form['name'] + ' could not be edited.')
-    abort(404)
+      add_artist_sql = text("update artist set name=:n, city=:c, state=:s, phone=:p, genres=:g, facebook_link=:f, website_link=:w, image_link=:i, looking_for_venue=:l, seeking_description=:sd where id=:id")
+      conn.execute(add_artist_sql, {"n":name, "c": city, "s": state, "p": phone, "g": genres, "f": facebook_link, "w": website_link, "i": image_link, "l": looking_for_venue, "sd": seeking_description, "id": artist_id})
+      trans.commit()
+      flash('Artist ' + request.form['name'] + ' was successfully edited!')
+    except ValueError as e:
+      print(e)
+      flash('An error occurred. Artist could not be edited.')
+      trans.rollback()
+    finally:
+      conn.close()
   else:
-    flash('Artist ' + request.form['name'] + ' was successfully edited!')
-    return redirect(url_for('show_artist', artist_id=artist_id))
+    message = []
+    for field, err in form.errors.items():
+        message.append(field + ' ' + '|'.join(err))
+    flash('Errors ' + str(message)) 
+  return redirect(url_for('show_artist', artist_id=artist_id))
   # TODO: take values from the form submitted, and update existing
   # artist record with ID <artist_id> using the new attributes
 
@@ -404,40 +400,39 @@ def edit_venue(venue_id):
 
 @app.route('/venues/<int:venue_id>/edit', methods=['POST'])
 def edit_venue_submission(venue_id):
-  error = False
-  req = request.form
+  form = VenueForm(request.form, meta={'csrf': False})
   conn = db.engine.connect()
   trans = conn.begin()
-  try:
-    name = req['name']
-    city = req['city']
-    state = req['state']
-    address = req['address']
-    phone = req['phone']
-    genres = req['genres']
-    facebook_link = req['facebook_link']
-    website_link = req['website_link']
-    image_link = req['image_link']
-    looking_for_talent = False
-    if 'seeking_talent' in req:
-      looking_for_talent = True
-    seeking_description = req['seeking_description']
+  if form.validate():
+    try:
+      name=form.name.data
+      city=form.city.data
+      state=form.state.data
+      address=form.address.data
+      phone=form.phone.data
+      genres=form.genres.data
+      facebook_link=form.facebook_link.data
+      website_link=form.website_link.data
+      image_link=form.image_link.data
+      looking_for_talent=form.seeking_talent.data
+      seeking_description=form.seeking_description.data
 
-    add_venue_sql = text("update venue set name=:n, city=:c, state=:s, address=:a, phone=:p, genres=:g, facebook_link=:f, website_link=:w, image_link=:i, looking_for_talent=:l, seeking_description=:sd where id=:id")
-    conn.execute(add_venue_sql, {"n":name, "c": city, "s": state, "a": address, "p": phone, "g": genres, "f": facebook_link, "w": website_link, "i": image_link, "l": looking_for_talent, "sd": seeking_description, "id": venue_id})
-    trans.commit()
-  except:
-    error = True
-    trans.rollback()
-    print(sys.exc_info())
-  finally:
-    conn.close()
-  if error:
-    flash('An error occurred. Venue ' + request.form['name'] + ' could not be edited.')
-    abort(404)
+      add_venue_sql = text("update venue set name=:n, city=:c, state=:s, address=:a, phone=:p, genres=:g, facebook_link=:f, website_link=:w, image_link=:i, looking_for_talent=:l, seeking_description=:sd where id=:id")
+      conn.execute(add_venue_sql, {"n":name, "c": city, "s": state, "a": address, "p": phone, "g": genres, "f": facebook_link, "w": website_link, "i": image_link, "l": looking_for_talent, "sd": seeking_description, "id": venue_id})
+      trans.commit()
+      flash('Venue ' + request.form['name'] + ' was successfully edited!')
+    except ValueError as e:
+        print(e)
+        flash('An error occurred. Venue could not be edited.')
+        trans.rollback()
+    finally:
+        conn.close()
   else:
-    flash('Venue ' + request.form['name'] + ' was successfully edited!')
-    return redirect(url_for('show_venue', venue_id=venue_id))
+    message = []
+    for field, err in form.errors.items():
+        message.append(field + ' ' + '|'.join(err))
+    flash('Errors ' + str(message))
+  return redirect(url_for('show_venue', venue_id=venue_id))
 
 
 #  Create Artist
@@ -453,41 +448,38 @@ def create_artist_submission():
   # called upon submitting the new artist listing form
   # TODO: insert form data as a new Venue record in the db, instead
   # TODO: modify data to be the data object returned from db insertion
-  error = False
-  req = request.form
+  form = ArtistForm(request.form, meta={'csrf': False})
   conn = db.engine.connect()
   trans = conn.begin()
-  try:
-    
-    name = req['name']
-    city = req['city']
-    state = req['state']
-    phone = req['phone']
-    genres = req['genres']
-    facebook_link = req['facebook_link']
-    website_link = req['website_link']
-    image_link = req['image_link']
-    looking_for_venue = False
-    if 'seeking_venue' in req:
-      looking_for_venue = True
-    seeking_description = req['seeking_description']
-    print(looking_for_venue)
-    artist_sql = text("insert into artist (name,city,state,phone,genres,facebook_link,website_link,image_link,looking_for_venue,seeking_description) values (:n,:c,:s,:p,:g,:f,:w,:i,:l,:sd)")
-    conn.execute(artist_sql, {"n":name,"c":city, "s": state, "p": phone, "g": genres, "f": facebook_link, "w": website_link, "i": image_link, "l": looking_for_venue, "sd": seeking_description})
-    trans.commit()
-    
-  except:
-    error = True
-    trans.rollback()
-    print(sys.exc_info())
-  finally:
-    conn.close()
-  if error:
-    flash('An error occurred. Artist ' + request.form['name'] + ' could not be listed.')
-    abort(404)
+  if form.validate():
+    try:
+      name=form.name.data
+      city=form.city.data
+      state=form.state.data
+      phone=form.phone.data
+      genres=form.genres.data
+      facebook_link=form.facebook_link.data
+      website_link=form.website_link.data
+      image_link=form.image_link.data
+      looking_for_venue=form.seeking_venue.data
+      seeking_description=form.seeking_description.data
+      
+      artist_sql = text("insert into artist (name,city,state,phone,genres,facebook_link,website_link,image_link,looking_for_venue,seeking_description) values (:n,:c,:s,:p,:g,:f,:w,:i,:l,:sd)")
+      conn.execute(artist_sql, {"n":name,"c":city, "s": state, "p": phone, "g": genres, "f": facebook_link, "w": website_link, "i": image_link, "l": looking_for_venue, "sd": seeking_description})
+      trans.commit()
+      flash('Artist '+ request.form['name'] +'was successfully listed!')
+    except ValueError as e:
+      print(e)
+      flash('An error occurred. Artist could not be listed.')
+      trans.rollback()
+    finally:
+      conn.close()
   else:
-    flash('Artist ' + request.form['name'] + ' was successfully listed!')
-    return render_template('pages/home.html')
+    message = []
+    for field, err in form.errors.items():
+        message.append(field + ' ' + '|'.join(err))
+    flash('Errors ' + str(message))  
+  return render_template('pages/home.html')
 
 #  Shows
 #  ----------------------------------------------------------------
@@ -526,31 +518,31 @@ def create_shows():
 
 @app.route('/shows/create', methods=['POST'])
 def create_show_submission():
-  error = False
-  req = request.form
   conn = db.engine.connect()
   trans = conn.begin()
-  try:
-    artist_id = req['artist_id']
-    venue_id = req['venue_id']
-    start_date = req['start_time']
-    
-    show_sql = text("insert into show (artist_id, venue_id, start_date) values (:a,:v,:s)")
-    
-    conn.execute(show_sql, {"a":artist_id,"v":venue_id, "s": start_date})
-    trans.commit()
-  except:
-    error = True
-    trans.rollback()
-    print(sys.exc_info())
-  finally:
-    conn.close()
-  if error:
-    flash('An error occurred. Show could not be listed.')
-    abort(404)
-  else:
-    flash('Show was successfully listed!')
-    return render_template('pages/home.html')
+  form = ShowForm(request.form, meta={'csrf': False})
+  if form.validate():
+    try:
+      artist_id=form.artist_id.data
+      venue_id=form.venue_id.data
+      start_date=form.start_time.data
+      '''
+      artist_id = req['artist_id']
+      venue_id = req['venue_id']
+      start_date = req['start_time']'''
+      
+      show_sql = text("insert into show (artist_id, venue_id, start_date) values (:a,:v,:s)")
+      
+      conn.execute(show_sql, {"a":artist_id,"v":venue_id, "s": start_date})
+      trans.commit()
+      flash('Show was successfully listed!')
+    except ValueError as e:
+      print(e)
+      flash('An error occurred. Show could not be listed.')
+      trans.rollback()
+    finally:
+      conn.close()
+  return render_template('pages/home.html')
 
 @app.errorhandler(404)
 def not_found_error(error):

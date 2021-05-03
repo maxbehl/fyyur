@@ -1,8 +1,11 @@
 from datetime import datetime
-from flask_wtf import Form
+from flask_wtf import Form, FlaskForm
 from wtforms import StringField, SelectField, SelectMultipleField, DateTimeField, BooleanField
 from wtforms.validators import DataRequired, AnyOf, URL
-
+import re
+def is_valid_phone(number):
+    regex = re.compile('^\(?([0-9]{3})\)?[-. ]?([0-9]{3})[-. ]?([0-9]{4})$')
+    return regex.match(number)
 class ShowForm(Form):
     artist_id = StringField(
         'artist_id'
@@ -125,6 +128,14 @@ class VenueForm(Form):
     seeking_description = StringField(
         'seeking_description'
     )
+    def validate(self):
+        rv = FlaskForm.validate(self)
+        if not rv:
+            return False
+        if not is_valid_phone(self.phone.data):
+            self.phone.errors.append('Invalid phone.')
+            return False
+        return True
 
 
 
@@ -236,4 +247,12 @@ class ArtistForm(Form):
     seeking_description = StringField(
             'seeking_description'
      )
+    def validate(self):
+        rv = FlaskForm.validate(self)
+        if not rv:
+            return False
+        if not is_valid_phone(self.phone.data):
+            self.phone.errors.append('Invalid phone.')
+            return False
+        return True
 
